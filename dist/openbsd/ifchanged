@@ -1,0 +1,19 @@
+#! /bin/sh
+
+# ifchange-ddns daemon to do DDNS update for a given interface
+# ifchanged_flags in rc.conf.local configures the following:
+#   - interface to monitor
+#   - fqdn to be updated
+#   - keyfile containing passwords for the update
+#
+# Set this in rc.conf.local to run as de-priv user
+# ifchanged_user="nobody"
+
+daemon="/usr/local/bin/ifchange-ddns"
+
+# golang progs need manual forking to be in background
+rc_bg=YES
+
+. /etc/rc.d/rc.subr
+
+rc_cmd $1

@@ -1,0 +1,4 @@
+github.com/opencoff/go-logger v0.3.0 h1:JuYcSe9m+zfHXScnaWixFNQh2fTwchbOUFymfn5XPyA=
+github.com/opencoff/go-logger v0.3.0/go.mod h1:0uZokzKt+uCJkbz12vSoChasSJoLc2aNuCS0A/U7Dqs=
+github.com/opencoff/pflag v0.5.0 h1:kK3cSTlGj0fHby/PoFzHkf+Jx3PdiACJwzYDWEWlEKQ=
+github.com/opencoff/pflag v0.5.0/go.mod h1:mTLzGGUGda1Av3d34iAJlh0JIlRxmFZtmc6qoWPspK0=
