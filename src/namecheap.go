@@ -172,6 +172,6 @@ func (n *namecheapUpdater) Update(ip net.IP) error {
 		return fmt.Errorf("namecheap: %s", x.Err1)
 	}
 
-	log.Info("namecheap: %s DDNS complete", n.fqdn)
+	log.Info("namecheap: %s %s DDNS complete", ip.String(), n.fqdn)
 	return nil
 }
