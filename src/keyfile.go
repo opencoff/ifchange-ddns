@@ -35,16 +35,19 @@ func ReadKeyFile(fqdn, provider, keyfile string) (string, bool) {
 	st := fi.Sys().(*syscall.Stat_t)
 	me := uint32(os.Getuid())
 
-	// no-one but the user running the file should have access to it.
-	if (st.Mode & 0066) != 0 {
-		die("keyfile %s: insecure permissions (group/world read-write)", keyfile)
-	}
-	if st.Uid != me {
-		die("keyfile %s: user %d is not the owner (%d)", keyfile, me, st.Uid)
-	}
+	// If we are running as non-root, do additional checks
+	if me != 0 {
+		// no-one but the user running the file should have access to it.
+		if (st.Mode & 0066) != 0 {
+			die("keyfile %s: insecure permissions (group/world read-write)", keyfile)
+		}
+		if st.Uid != me {
+			die("keyfile %s: user %d is not the owner (%d)", keyfile, me, st.Uid)
+		}
 
-	if err := checkStat(keyfile); err != nil {
-		die("%s", err)
+		if err := checkStat(keyfile); err != nil {
+			die("%s", err)
+		}
 	}
 
 	r := bufio.NewScanner(fd)

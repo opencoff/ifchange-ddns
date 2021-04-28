@@ -10,6 +10,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,6 +26,11 @@ import (
 
 var Dryrun bool
 
+// This will be filled in by "build"
+var RepoVersion string = "UNDEFINED"
+var Buildtime string = "UNDEFINED"
+var ProductVersion string = "UNDEFINED"
+
 // All updaters take the same set of inputs
 type Updater interface {
 	Update(ip net.IP) error
@@ -33,13 +39,14 @@ type Updater interface {
 // Usage: $0 interface FQDN keyfile
 func main() {
 	var sleep time.Duration
-	var once, debug bool
+	var once, debug, version bool
 
 	os.Args[0] = filepath.Base(os.Args[0])
 	flag.DurationVarP(&sleep, "sleep", "s", 60*time.Second, "Sleep for `N` units (secs, mins) between checks")
 	flag.BoolVarP(&once, "oneshot", "", false, "Do the update once and don't sleep/poll")
 	flag.BoolVarP(&Dryrun, "dry-run", "n", false, "Dryrun mode (don't post http-update)")
 	flag.BoolVarP(&debug, "debug", "d", false, "Run in debug mode")
+	flag.BoolVarP(&version, "version", "V", false, "Show version info and exit")
 
 	usage := fmt.Sprintf("%s [options] INTERFACE FQDN KEYFILE", os.Args[0])
 
@@ -50,6 +57,11 @@ func main() {
 
 	flag.Parse()
 	args := flag.Args()
+	if version {
+		fmt.Printf("%s - %s [%s; %s]\n", os.Args[0], ProductVersion, RepoVersion, Buildtime)
+		os.Exit(0)
+	}
+
 	if len(args) < 3 {
 		die("Insufficient arguments. Try '%s --help'", os.Args[0])
 	}
@@ -59,12 +71,6 @@ func main() {
 	keyfile, err := filepath.Abs(args[2])
 	if err != nil {
 		die("can't get abs path for %s: %s", args[2], err)
-	}
-
-	fmt.Printf("iface=%s, fqdn=%s, keyfile=%s\n", iface, fqdn, keyfile)
-	ip, err := getIP(iface)
-	if err != nil {
-		die("%s", err)
 	}
 
 	key, ok := ReadKeyFile(fqdn, "namecheap", keyfile)
@@ -87,25 +93,37 @@ func main() {
 	// filenames
 	const logflags int = L.Ldate | L.Ltime | L.Lshortfile | L.Lmicroseconds
 
-	log, err := L.NewLogger(logdest, prio, "", logflags)
+	log, err := L.NewLogger(logdest, prio, iface, logflags)
 	if err != nil {
 		die("can't create logger: %s", err)
 	}
 
-	// always update  the first time
+	log.Info("ifchange-ddns - %s [%s - built on %s] on %s (logging at %s)...",
+		ProductVersion, RepoVersion, Buildtime, iface, log.Prio())
+
 	nc, err := NewNamecheapUpdater(fqdn, key, log)
 	if err != nil {
-		die("%s", err)
+		log.Fatal("%s", err)
 	}
 
-	err = nc.Update(ip)
-	if err != nil {
-		die("%s", err)
+	// one shot update
+	if once {
+		ip, err := getIP(iface)
+		if err != nil {
+			log.Fatal("%s", err)
+		}
+
+		log.Debug("IP: %s", ip.String())
+		err = nc.Update(ip)
+		if err != nil {
+			log.Fatal("%s", err)
+		}
+
+		log.Close()
+		os.Exit(0)
 	}
 
-	if !once {
-		startPoll(log, iface, sleep, nc, ip)
-	}
+	startPoll(log, iface, sleep, nc, []byte{})
 
 	log.Close()
 	os.Exit(0)
@@ -131,6 +149,7 @@ func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old 
 			if err != nil {
 				log.Warn("%s", err)
 			} else if !bytes.Equal(old, ip) {
+				log.Debug("New IP: %s", ip.String())
 				u.Update(ip)
 				old = ip
 			}
@@ -168,7 +187,7 @@ func getIP(nm string) (net.IP, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("%s: can't find usable IP", nm)
+	return nil, errNoIP
 }
 
 // Return true if this IP is acceptable as a DDNS update
@@ -221,3 +240,5 @@ var Martians = []net.IPNet{
 		Mask: net.CIDRMask(10, 32),
 	},
 }
+
+var errNoIP = errors.New("no usable IP")
