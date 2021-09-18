@@ -130,7 +130,6 @@ func main() {
 }
 
 func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old net.IP) {
-
 	// Setup signal handlers
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan,
@@ -141,11 +140,14 @@ func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old 
 	tm := time.NewTicker(sleep)
 	timechan := tm.C
 
+	log.Debug("Starting poll-loop for %s every %s ..", iface, sleep)
+
 	defer tm.Stop()
 	for {
 		select {
 		case _ = <-timechan:
 			ip, err := getIP(iface)
+			log.Debug("%s: IP: %s", iface, ip)
 			if err != nil {
 				log.Warn("%s", err)
 			} else if !bytes.Equal(old, ip) {
@@ -159,6 +161,8 @@ func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old 
 			log.Info("Caught signal %d; Terminating ..\n", int(sig))
 			return
 		}
+
+		log.Debug("  sleeping for %s ..", sleep)
 	}
 }
 
