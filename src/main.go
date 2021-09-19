@@ -1,4 +1,3 @@
-// nc-ddns.go - Simple DDNS notifier that watches for interface addr change
 //
 // NB: Namecheap DDNS API only supports v4
 //
@@ -142,17 +141,15 @@ func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old 
 
 	log.Debug("Starting poll-loop for %s every %s ..", iface, sleep)
 
+	// we start by first updating the IP
+	updateIP(u, log, iface, old)
+
 	defer tm.Stop()
+
 	for {
 		select {
 		case _ = <-timechan:
-			ip, err := getIP(iface)
-			log.Debug("%s: IP: %s", iface, ip)
-			if err != nil {
-				log.Warn("%s", err)
-			} else if !bytes.Equal(old, ip) {
-				log.Debug("New IP: %s", ip.String())
-				u.Update(ip)
+			if ip := updateIP(u, log, iface, old); ip != nil {
 				old = ip
 			}
 
@@ -164,6 +161,17 @@ func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old 
 
 		log.Debug("  sleeping for %s ..", sleep)
 	}
+}
+
+func updateIP(u Updater, log *L.Logger, iface string, old net.IP) net.IP {
+	ip, err := getIP(iface)
+	if err != nil {
+		log.Warn("%s", err)
+	} else if !bytes.Equal(old, ip) {
+		log.Debug("%s: New IP: %s", iface, ip.String())
+		u.Update(ip)
+	}
+	return ip
 }
 
 // Get all IPs of a given interface
