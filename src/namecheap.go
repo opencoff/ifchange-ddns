@@ -8,11 +8,13 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"golang.org/x/net/html/charset"
 
 	L "github.com/opencoff/go-logger"
 )
@@ -112,9 +114,13 @@ type xmlResponse struct {
 //	    </responses>
 //	</interface-response>
 
-//
 func (n *namecheapUpdater) Update(ip net.IP) error {
 	log := n.log
+
+	eret := func(s string, err error) error {
+		n.log.Warn("namecheap: %s %s", s, err)
+		return fmt.Errorf("namecheap: %s %w", s, err)
+	}
 
 	if len(ip) == 0 {
 		log.Error("namecheap: No IP for %s?", n.fqdn)
@@ -137,8 +143,7 @@ func (n *namecheapUpdater) Update(ip net.IP) error {
 
 	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
-		log.Warn("namecheap: %s", err)
-		return fmt.Errorf("namecheap: %w", err)
+		return eret("", err)
 	}
 
 	cl := &http.Client{
@@ -147,29 +152,32 @@ func (n *namecheapUpdater) Update(ip net.IP) error {
 
 	resp, err := cl.Do(req)
 	if err != nil {
-		log.Warn("namecheap: %s", err)
-		return fmt.Errorf("namecheap: %w", err)
+		return eret("", err)
 	}
 
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Warn("namecheap: %s", err)
-		return fmt.Errorf("namecheap: %w", err)
-	}
-
+	// Namecheap xml response is utf-16 encoded; we need extra steps to
+	// decode it.
 	var x xmlResponse
 
-	err = xml.Unmarshal(body, &x)
+	rd, err := charset.NewReader(resp.Body, "utf-16")
 	if err != nil {
-		log.Warn("namecheap: %s", err)
-		return fmt.Errorf("namecheap: %w", err)
+		return eret("", err)
+	}
+
+	dec := xml.NewDecoder(rd)
+	dec.CharsetReader = func(_ string, rd io.Reader) (io.Reader, error) {
+		return rd, nil
+	}
+
+	if err = dec.Decode(&x); err != nil {
+		return eret("xml", err)
 	}
 
 	if x.Errs > 0 {
-		log.Warn("namecheap: %s", err)
-		return fmt.Errorf("namecheap: %s", x.Err1)
+		log.Warn("namecheap: xml decode: %s", x.Err1)
+		return fmt.Errorf("namecheap: Errs %s", x.Err1)
 	}
 
 	log.Info("namecheap: %s %s DDNS complete", ip.String(), n.fqdn)

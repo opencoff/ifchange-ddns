@@ -1,4 +1,8 @@
-github.com/opencoff/go-logger v0.4.0 h1:XUkI/Ov7/mGCxZ1jcV92QON+kHXC99YqATOBNvB3GJo=
-github.com/opencoff/go-logger v0.4.0/go.mod h1:0uZokzKt+uCJkbz12vSoChasSJoLc2aNuCS0A/U7Dqs=
-github.com/opencoff/pflag v0.5.0 h1:kK3cSTlGj0fHby/PoFzHkf+Jx3PdiACJwzYDWEWlEKQ=
-github.com/opencoff/pflag v0.5.0/go.mod h1:mTLzGGUGda1Av3d34iAJlh0JIlRxmFZtmc6qoWPspK0=
+github.com/opencoff/go-logger v0.5.1 h1:ljM8pJvcrd49TZdgs5Fn8MHfGd/46BoqZuyJ9XcUPPI=
+github.com/opencoff/go-logger v0.5.1/go.mod h1:0uZokzKt+uCJkbz12vSoChasSJoLc2aNuCS0A/U7Dqs=
+github.com/opencoff/pflag v1.0.6-sh2 h1:Vw3VuG7Z2Cmpev4U3mB16qXYP20RHoxCAlxPOPSpDJU=
+github.com/opencoff/pflag v1.0.6-sh2/go.mod h1:2bXtpAD/5h/2LarkbsRwiUxqnvB1nZBzn9Xjad1P41A=
+golang.org/x/net v0.17.0 h1:pVaXccu2ozPjCXewfr1S7xza/zcXTity9cCdXQYSjIM=
+golang.org/x/net v0.17.0/go.mod h1:NxSsAGuq816PNPmqtQdLE42eU2Fs7NoRIZrHJAlaCOE=
+golang.org/x/text v0.13.0 h1:ablQoSUd0tRdKxZewP80B+BaqeKJuVhuRxj/dkrun3k=
+golang.org/x/text v0.13.0/go.mod h1:TvPlkZtksWOMsz7fbANvkp4WM8x/WCo/om8BMLbz+aE=
