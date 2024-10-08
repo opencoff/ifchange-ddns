@@ -12,13 +12,16 @@
 # (c) 2016 Sudhi Herle
 #
 # License: GPLv2
-#
+
+# list of programs:
+#   srcdir:progname srcdir2:prog2 ...
 Progs="src:ifchange-ddns"
 
 # Relative path to protobuf sources
 # e.g. src/foo/a.proto
 Protobufs=""
 
+#set -x
 
 # -- DO NOT CHANGE ANYTHING AFTER THIS --
 
@@ -31,6 +34,9 @@ Prodver=""
 Repover=""
 Verbose=0
 Go=`which go`
+Arch=
+Bindir=$PWD/bin
+e=
 
 die() {
     echo "$Z: $@" 1>&2
@@ -51,8 +57,14 @@ esac
 getvcs_version() {
     local rev=
     local prodv=
+    local git=`which git`
+    local hg=`which hg`
 
-    if [ -d "./.hg" ]; then
+    if [ -n "$git" ]; then
+        local xrev=$(git describe --always --dirty --long --abbrev=12) || exit 1
+        rev="git:$xrev"
+        prodv=$(git tag --list | sort -V | tail -1)
+    elif [ -n "$hg" ]; then
         local xrev=$(hg id --id) || exit 1
         local brev=${xrev%+}
         if [ "$brev" != "$xrev" ]; then
@@ -61,13 +73,9 @@ getvcs_version() {
             rev="hg:${brev}"
         fi
         prodv=$(hg log -r "branch(stable) and tag()" -T "{tags}\n" | sort -V | tail -1)
-    elif [ -d "./.git" ]; then
-        local xrev=$(git describe --always --dirty --long --abbrev=12) || exit 1
-        rev="git:$xrev"
-        prodv=$(git tag --list | sort -V | tail -1)
     else
+        warn "no git or hg found; can't get VCS info"
         rev="UNKNOWN-VER"
-        warn "Can't find version info"
     fi
 
     [ -n "$Prodver" ] && prodv=$Prodver
@@ -96,8 +104,6 @@ $0 - A Go production build tool that adds git-repository information,
 product version, build-timestamp etc. It supports cross-compilation,
 static linking and generating protobuf output.
 
-If needed, it uses the gogo-slick protobuf compiler [github.com/gogo/protobuf].
-
 Build output is in bin/\$OS-\$CPU for a given OS, CPU combination.
 
 Usage: $0
@@ -109,10 +115,11 @@ And, PROGS is one or more go programs.
 With no arguments, $0 builds: $pstr
 
 The repository's latest tag is used as the default version of the software being
-built.
+built. The current repository version is $Repover.
 
 Options:
     -h, --help          Show this help message and quit
+    -b D, --bindir=D    Put the binaries in the directory 'D' [$Bindir]
     -s, --static        Build a statically linked binary [False]
     -V N, --version=N   Use 'N' as the product version string [$Prodver]
     -a X, --arch=X      Cross compile for OS-CPU 'X' [$hostos-$hostcpu]
@@ -195,6 +202,14 @@ do
             ac_prev=Arch
             ;;
 
+        -b|--bindir)
+            ac_prev=Bindir
+            ;;
+
+        --bindir=*)
+            Bindir=$ac_optarg
+            ;;
+
         --version=*)
             Prodver=$ac_optarg
             ;;
@@ -254,7 +269,7 @@ done
 [ $Dryrun  -gt 0 ] && e=echo
 
 # let every error abort
-set -e
+set -e -u
 
 # build a tool that runs on the host - if needed.
 hosttool() {
@@ -343,22 +358,28 @@ else
     os=$hostos
     cpu=$hostcpu
     cross=$os-$cpu
+    export GOOS=$os GOARCH=$cpu
 fi
 
 # If we don't need CGO, then we can attempt a static link
-if [ -n "${cgo[$os]}" ]; then
+ldflags=
+isuffix=
+msg=
+if [ -n "cgo[$os]" ]; then
     export CGO_ENABLED=1
 
     # See if we have a specific cross-compiler for this CPU+OS combo
+    set +u
     xcc="${GOOS}_${GOARCH}"
-    xcc=${!xcc}
-    if [ -n "$xcc" ]; then
-        p=`type -p $xcc`
+    ycc=${!xcc}
+    if [ -n "$ycc" ]; then
+        p=`type -p $ycc`
         [ -n "$p" ] || die "Can't find $xcc! Do you have compilers for $GOARCH available in PATH?"
-        export CC=$xcc
+        export CC=$ycc
     else
         echo "$Z: No Cross compiler defined for $GOOS-$GOARCH. Build may fail.." 1>&2
     fi
+    set -u
 else
     if [ $Static -gt 0 ]; then
         export CGO_ENABLED=0
@@ -376,11 +397,11 @@ fi
 
 
 # This is where build outputs go
-Bindir=$PWD/bin/$cross
-Hostbindir=$PWD/bin/$hostos-$hostcpu
+Outdir=$Bindir/$cross
+Hostbindir=$Bindir/$hostos-$hostcpu
 export PATH=$Hostbindir:$PATH
 
-[ -d $Bindir ]     || mkdir -p $Bindir
+[ -d $Outdir ]     || mkdir -p $Outdir
 [ -d $Hostbindir ] || mkdir -p $Hostbindir
 
 
@@ -394,8 +415,7 @@ fi
 # Get git/hg version info for the build
 repover="main.RepoVersion=$Repover"
 prodver="main.ProductVersion=$Prodver"
-date="main.Buildtime=`date -u '+%Y-%m-%dT%H:%M.%SZ'`"
-ldflags="-ldflags \"-X $repover -X $prodver -X $date $ldflags\""
+ldflags="-ldflags \"-X $repover -X $prodver $ldflags -buildid=\""
 vflag=""
 
 [ $Verbose -gt 0 ] && vflag="-v"
@@ -418,11 +438,13 @@ case $Tool in
 
     *) # Default is to build programs
         set -- $args
-        if [ -z "$1" ]; then
+        if [ $# -eq 0 ]; then
             all=$Progs
         else
             all="$@"
         fi
+
+        [ -z "$all" ] && die "No programs specified. Try '$Z --help'"
 
         echo "Building $Prodver ($Repover), $cross $msg .."
 
@@ -439,10 +461,16 @@ case $Tool in
             if [ "$GOOS" = "windows" ]; then
                 base=${out%%.exe}
                 out="${base}.exe"
+                old="${base}.prev.exe"
+            else
+                old="${out}.prev"
             fi
 
             echo "   $dir: $out .. "
-            $e eval $Go build $vflag -o $Bindir/$out $isuffix "$ldflags" ./$dir || exit 1
+            outbin=$Outdir/$out
+            oldbin=$Outdir/$old
+            [ -f $outbin ] && mv -f $outbin $oldbin
+            $e eval $Go build $vflag -trimpath -buildvcs=false -o $outbin $isuffix "$ldflags" ./$dir || exit 1
         done
         ;;
 esac

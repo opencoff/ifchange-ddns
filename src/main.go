@@ -27,7 +27,6 @@ var Dryrun bool
 
 // This will be filled in by "build"
 var RepoVersion string = "UNDEFINED"
-var Buildtime string = "UNDEFINED"
 var ProductVersion string = "UNDEFINED"
 
 // All updaters take the same set of inputs
@@ -57,7 +56,7 @@ func main() {
 	flag.Parse()
 	args := flag.Args()
 	if version {
-		fmt.Printf("%s - %s [%s; %s]\n", os.Args[0], ProductVersion, RepoVersion, Buildtime)
+		fmt.Printf("%s - %s [%s]\n", os.Args[0], ProductVersion, RepoVersion)
 		os.Exit(0)
 	}
 
@@ -97,8 +96,8 @@ func main() {
 		die("can't create logger: %s", err)
 	}
 
-	log.Info("ifchange-ddns - %s [%s - built on %s] on %s (logging at %s)...",
-		ProductVersion, RepoVersion, Buildtime, iface, log.Prio())
+	log.Info("ifchange-ddns - %s [%s] on %s (logging at %s)...",
+		ProductVersion, RepoVersion, iface, log.Prio())
 
 	nc, err := NewNamecheapUpdater(fqdn, key, log)
 	if err != nil {
