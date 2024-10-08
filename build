@@ -269,7 +269,7 @@ done
 [ $Dryrun  -gt 0 ] && e=echo
 
 # let every error abort
-set -e -u
+set -e
 
 # build a tool that runs on the host - if needed.
 hosttool() {
@@ -365,11 +365,10 @@ fi
 ldflags=
 isuffix=
 msg=
-if [ -n "cgo[$os]" ]; then
+if [ -n "${cgo[$os]}" ]; then
     export CGO_ENABLED=1
 
     # See if we have a specific cross-compiler for this CPU+OS combo
-    set +u
     xcc="${GOOS}_${GOARCH}"
     ycc=${!xcc}
     if [ -n "$ycc" ]; then
@@ -379,7 +378,6 @@ if [ -n "cgo[$os]" ]; then
     else
         echo "$Z: No Cross compiler defined for $GOOS-$GOARCH. Build may fail.." 1>&2
     fi
-    set -u
 else
     if [ $Static -gt 0 ]; then
         export CGO_ENABLED=0
