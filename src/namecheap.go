@@ -27,12 +27,12 @@ const (
 type namecheapUpdater struct {
 	fqdn string
 	v    url.Values
-	log  *L.Logger
+	log  L.Logger
 }
 
 var _ Updater = &namecheapUpdater{}
 
-func NewNamecheapUpdater(fqdn, key string, log *L.Logger) (Updater, error) {
+func NewNamecheapUpdater(fqdn, key string, log L.Logger) (Updater, error) {
 	i := strings.Index(fqdn, ".")
 	if i < 0 {
 		return nil, fmt.Errorf("namecheap: %s is not a fqdn", fqdn)

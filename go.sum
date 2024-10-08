@@ -1,5 +1,5 @@
-github.com/opencoff/go-logger v0.5.1 h1:ljM8pJvcrd49TZdgs5Fn8MHfGd/46BoqZuyJ9XcUPPI=
-github.com/opencoff/go-logger v0.5.1/go.mod h1:0uZokzKt+uCJkbz12vSoChasSJoLc2aNuCS0A/U7Dqs=
+github.com/opencoff/go-logger v0.7.2 h1:zZAf9Y9dmiKGTOmiH/WEzfrlBrR7D2npsP/JhyP0oYs=
+github.com/opencoff/go-logger v0.7.2/go.mod h1:dhRnw/605cByI6vleNQFb81ADuw3DH390BtkHoGY/uo=
 github.com/opencoff/pflag v1.0.6-sh2 h1:Vw3VuG7Z2Cmpev4U3mB16qXYP20RHoxCAlxPOPSpDJU=
 github.com/opencoff/pflag v1.0.6-sh2/go.mod h1:2bXtpAD/5h/2LarkbsRwiUxqnvB1nZBzn9Xjad1P41A=
 golang.org/x/net v0.24.0 h1:1PcaxkF854Fu3+lvBIx5SYn9wRlBzzcnHZSiaFFAb0w=

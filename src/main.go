@@ -90,7 +90,7 @@ func main() {
 
 	// We want microsecond timestamps and debug logs to have short
 	// filenames
-	const logflags int = L.Ldate | L.Ltime | L.Lshortfile | L.Lmicroseconds
+	const logflags int = L.Ldate | L.Ltime | L.Lfileloc | L.Lmicroseconds
 
 	log, err := L.NewLogger(logdest, prio, iface, logflags)
 	if err != nil {
@@ -128,7 +128,7 @@ func main() {
 	os.Exit(0)
 }
 
-func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old net.IP) {
+func startPoll(log L.Logger, iface string, sleep time.Duration, u Updater, old net.IP) {
 	// Setup signal handlers
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan,
@@ -163,7 +163,7 @@ func startPoll(log *L.Logger, iface string, sleep time.Duration, u Updater, old 
 	}
 }
 
-func updateIP(u Updater, log *L.Logger, iface string, old net.IP) net.IP {
+func updateIP(u Updater, log L.Logger, iface string, old net.IP) net.IP {
 	ip, err := getIP(iface)
 	if err != nil {
 		log.Warn("%s", err)
@@ -231,23 +231,23 @@ func getDefaultTransport() http.RoundTripper {
 }
 
 var Martians = []net.IPNet{
-	net.IPNet{ // loopback addr
+	{ // loopback addr
 		IP:   []byte{127, 0, 0, 0},
 		Mask: net.CIDRMask(8, 32),
 	},
-	net.IPNet{ // 192.168.0.0/16
+	{ // 192.168.0.0/16
 		IP:   []byte{192, 168, 0, 0},
 		Mask: net.CIDRMask(16, 32),
 	},
-	net.IPNet{ // 172.16.0.0/12
+	{ // 172.16.0.0/12
 		IP:   []byte{172, 16, 0, 0},
 		Mask: net.CIDRMask(12, 32),
 	},
-	net.IPNet{ // 10.0.0.0/8
+	{ // 10.0.0.0/8
 		IP:   []byte{10, 0, 0, 0},
 		Mask: net.CIDRMask(8, 32),
 	},
-	net.IPNet{ // CGNAT 100.64.0.0/10
+	{ // CGNAT 100.64.0.0/10
 		IP:   []byte{100, 64, 0, 0},
 		Mask: net.CIDRMask(10, 32),
 	},
